@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { post } from "../lib/api.js";
 import { Badge, EventLog, Gantt, Page, Panel, Queue, Stat } from "../components/UI.jsx";
 
+const defaultResources = { Stove: 2, Oven: 1, Fryer: 1, Counter: 2, Mixer: 1 };
+
 export default function Demo() {
   const [sim, setSim] = useState(null);
   const [schedule, setSchedule] = useState(null);
@@ -116,6 +118,7 @@ export default function Demo() {
           </div>
         </div>
       </Panel>
+      <AlwaysVisibleSemaphore resources={sim?.resources} active={isActive(sim, ["Semaphore", "Waiting Queue", "Completion"])} />
       <ConceptOverview activeConcept={sim?.concept} />
       <div className="queue-grid"><Queue title="New Orders" items={sim?.queues?.newOrders || []} /><Queue title="Ready Queue" items={sim?.queues?.ready || []} tone="green" /><Queue title="Cooking" items={sim?.queues?.cooking || []} tone="amber" /><Queue title="Waiting" items={sim?.queues?.waiting || []} tone="red" /><Queue title="Completed" items={sim?.queues?.completed || []} tone="violet" /></div>
       <ConceptProofBoard sim={sim} schedule={schedule} />
@@ -199,6 +202,18 @@ function ConceptProofBoard({ sim, schedule }) {
   );
 }
 
+function AlwaysVisibleSemaphore({ resources, active }) {
+  const values = resources || defaultResources;
+  return (
+    <Panel title="Live Semaphore Values" className={active ? "active-proof" : ""}>
+      <div className="stats-grid semaphore-grid">
+        {Object.entries(values).map(([name, value]) => <Stat key={name} label={`${name} Semaphore`} value={value} />)}
+      </div>
+      <p>This semaphore panel stays visible throughout the demo. Values update when kitchen resources are allocated or released.</p>
+    </Panel>
+  );
+}
+
 function isActive(sim, concepts) {
   return concepts.includes(sim?.concept);
 }
@@ -222,10 +237,8 @@ function ProducerConsumerProof({ sim }) {
 }
 
 function SemaphoreProof({ sim }) {
-  if (sim?.resources) {
-    return <div className="proof-stack"><div className="stats-grid small">{Object.entries(sim.resources).map(([name, value]) => <Stat key={name} label={`${name}`} value={value} />)}</div><p>{sim.currentEvent}</p><p>Resources use wait(resource) when allocated and signal(resource) when released.</p></div>;
-  }
-  return <p>Semaphore values become live when an order allocates or releases Stove, Oven, Fryer, Counter, or Mixer.</p>;
+  const values = sim?.resources || defaultResources;
+  return <div className="proof-stack"><div className="stats-grid small">{Object.entries(values).map(([name, value]) => <Stat key={name} label={`${name}`} value={value} />)}</div><p>{sim?.currentEvent || "Semaphore values are ready before the simulation starts."}</p><p>Resources use wait(resource) when allocated and signal(resource) when released.</p></div>;
 }
 
 function MutexProof({ sim }) {

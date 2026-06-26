@@ -42,6 +42,7 @@ export function simulationStep(step = 0) {
   const index = Math.max(0, Math.min(Number(step), timeline.length - 1));
   const current = timeline[index];
   const queues = buildQueues(orders, current.states);
+  const resources = findLatestResources(timeline, index);
   return {
     step: index,
     totalSteps: timeline.length,
@@ -50,13 +51,21 @@ export function simulationStep(step = 0) {
     operation: current.operation,
     explanation: current.explanation,
     queues,
-    resources: current.resources,
+    resources,
     buffer: current.buffer,
     mutex: current.mutex,
     schedulerDecision: current.schedulerDecision,
     deadlock: current.deadlock,
     eventLog: timeline.slice(0, index + 1).map((item, i) => ({ time: i, message: item.message }))
   };
+}
+
+function findLatestResources(timeline, index) {
+  const defaultResources = { Stove: 2, Oven: 1, Fryer: 1, Counter: 2, Mixer: 1 };
+  for (let i = index; i >= 0; i -= 1) {
+    if (timeline[i].resources) return timeline[i].resources;
+  }
+  return defaultResources;
 }
 
 function buildQueues(orders, states) {
