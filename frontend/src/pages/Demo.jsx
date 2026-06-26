@@ -64,6 +64,16 @@ export default function Demo() {
     }
   };
 
+  const previousStep = async () => {
+    try {
+      stopAuto();
+      setLoadError("");
+      setSim(await post("/simulation/previous"));
+    } catch (error) {
+      setLoadError(error.message);
+    }
+  };
+
   useEffect(() => { start(); }, []);
   useEffect(() => () => stopAuto(), []);
   useEffect(() => {
@@ -85,7 +95,7 @@ export default function Demo() {
     <Page
       title="Demo Mode"
       subtitle="One guided scenario touches CPU scheduling, producer-consumer, semaphore, mutex, critical section, deadlock detection, metrics, and report data."
-      actions={<><button onClick={runAutoDemo}>{isAutoRunning ? "Restart Auto Demo" : "Start Auto Demo"}</button><button onClick={stopAuto} disabled={!isAutoRunning}>Pause</button><button onClick={nextStep}>Next Step</button><button onClick={reset}>Reset</button></>}
+      actions={<><button onClick={runAutoDemo}>{isAutoRunning ? "Restart Auto Demo" : "Start Auto Demo"}</button><button onClick={stopAuto} disabled={!isAutoRunning}>Pause</button><button onClick={previousStep}>Previous Step</button><button onClick={nextStep}>Next Step</button><button onClick={reset}>Reset</button></>}
     >
       {loadError && <Panel title="Demo Error" className="error-panel"><p>{loadError}</p><p>Start the backend on port 5000, then reload this page.</p></Panel>}
       <Panel title="Auto Demo Controls">
