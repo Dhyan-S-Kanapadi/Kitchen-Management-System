@@ -52,6 +52,7 @@ export function simulationStep(step = 0) {
     explanation: current.explanation,
     queues,
     resources,
+    semaphoreAction: current.semaphoreAction,
     buffer: current.buffer,
     mutex: current.mutex,
     schedulerDecision: current.schedulerDecision,
@@ -119,7 +120,16 @@ function buildTimeline() {
         selectedOrder: "Pasta",
         reason: "Pasta arrived first at time 0.",
         readyQueue: ["Pasta", "Pizza"],
-        chefAssigned: "Chef 1"
+        chefAssigned: "Chef 1",
+        arrivalTime: 0,
+        burstTime: 12,
+        currentTime: 2,
+        waitingTime: 2,
+        responseTime: 2,
+        comparison: [
+          { order: "Pasta", arrivalTime: 0, cookingTime: 12, selected: true },
+          { order: "Pizza", arrivalTime: 1, cookingTime: 16, selected: false }
+        ]
       }
     },
     {
@@ -133,7 +143,17 @@ function buildTimeline() {
         selectedOrder: "Pasta",
         reason: "Pasta is dispatched to Chef 1.",
         readyQueue: ["Pizza", "Sandwich"],
-        chefAssigned: "Chef 1"
+        chefAssigned: "Chef 1",
+        arrivalTime: 0,
+        burstTime: 12,
+        currentTime: 3,
+        waitingTime: 3,
+        responseTime: 3,
+        comparison: [
+          { order: "Pasta", arrivalTime: 0, cookingTime: 12, selected: true },
+          { order: "Pizza", arrivalTime: 1, cookingTime: 16, selected: false },
+          { order: "Sandwich", arrivalTime: 2, cookingTime: 5, selected: false }
+        ]
       }
     },
     {
@@ -142,7 +162,16 @@ function buildTimeline() {
       message: "Time 4: wait(Stove), Stove Semaphore 2 -> 1",
       explanation: "Pasta needs a stove. The semaphore count decreases from 2 to 1, proving resource allocation.",
       states: baseStates({ "O-101": "COOKING", "O-102": "READY", "O-103": "READY" }),
-      resources: { Stove: 1, Oven: 1, Fryer: 1, Counter: 2, Mixer: 1 }
+      resources: { Stove: 1, Oven: 1, Fryer: 1, Counter: 2, Mixer: 1 },
+      semaphoreAction: {
+        operation: "wait(Stove)",
+        resource: "Stove",
+        before: 2,
+        after: 1,
+        order: "Pasta",
+        result: "allocated",
+        proof: "Semaphore count decreased because one stove was acquired."
+      }
     },
     {
       concept: "Producer-Consumer",
@@ -150,7 +179,19 @@ function buildTimeline() {
       message: "Time 5: Customer produced Burger into order buffer using wait(empty), wait(mutex), signal(full)",
       explanation: "Customers and waiters are producers. Chefs are consumers. The order buffer is protected by semaphores.",
       states: baseStates({ "O-101": "COOKING", "O-102": "READY", "O-103": "READY", "O-104": "READY" }),
-      buffer: { items: ["Pizza", "Sandwich", "Burger"], empty: 1, full: 3, size: 4 }
+      buffer: {
+        items: ["Pizza", "Sandwich", "Burger"],
+        empty: 1,
+        full: 3,
+        mutex: 1,
+        size: 4,
+        producer: "Customer",
+        consumer: "Chef",
+        producedOrder: "Burger",
+        operationSequence: ["wait(empty)", "wait(mutex)", "add Burger", "signal(mutex)", "signal(full)"],
+        blockedProducer: "Cake waits because empty = 0 when buffer is full",
+        proof: "empty decreased and full increased after the producer inserted an order."
+      }
     },
     {
       concept: "Mutex",
@@ -158,7 +199,17 @@ function buildTimeline() {
       message: "Time 6: Inventory mutex acquired by Pasta",
       explanation: "Only one process may update inventory. The mutex lock protects the critical section.",
       states: baseStates({ "O-101": "COOKING", "O-102": "READY", "O-103": "READY", "O-104": "READY" }),
-      mutex: { locked: true, owner: "Pasta", criticalSection: "Updating Pasta inventory", before: 10, after: 9, ingredient: "Pasta" }
+      mutex: {
+        locked: true,
+        owner: "Pasta",
+        waitingOrders: ["Pizza", "Burger"],
+        criticalSection: "Updating Pasta inventory",
+        before: 10,
+        after: 9,
+        ingredient: "Pasta",
+        lockSequence: ["lock(inventoryMutex)", "enter critical section", "Pasta: 10 -> 9"],
+        proof: "Pizza and Burger cannot update inventory while Pasta owns the mutex."
+      }
     },
     {
       concept: "Critical Section",
@@ -166,7 +217,18 @@ function buildTimeline() {
       message: "Time 7: Pasta inventory updated, Pasta 10 -> 9, mutex released",
       explanation: "The update completes before the next order enters the critical section.",
       states: baseStates({ "O-101": "COOKING", "O-102": "READY", "O-103": "READY", "O-104": "READY" }),
-      mutex: { locked: false, owner: null, criticalSection: "Pasta update finished", before: 10, after: 9, ingredient: "Pasta" }
+      mutex: {
+        locked: false,
+        owner: null,
+        waitingOrders: ["Pizza", "Burger"],
+        nextOwner: "Pizza",
+        criticalSection: "Pasta update finished",
+        before: 10,
+        after: 9,
+        ingredient: "Pasta",
+        lockSequence: ["exit critical section", "unlock(inventoryMutex)", "wake next waiting order"],
+        proof: "The mutex is released only after the shared inventory update is complete."
+      }
     },
     {
       concept: "Waiting Queue",
@@ -174,7 +236,16 @@ function buildTimeline() {
       message: "Time 8: Cake needs Oven while Pizza holds Oven, Cake moved to WAITING FOR RESOURCE",
       explanation: "A process that cannot acquire a required resource leaves ready/running and waits.",
       states: baseStates({ "O-101": "COOKING", "O-102": "COOKING", "O-103": "READY", "O-104": "READY", "O-107": "WAITING FOR RESOURCE" }),
-      resources: { Stove: 1, Oven: 0, Fryer: 1, Counter: 1, Mixer: 1 }
+      resources: { Stove: 1, Oven: 0, Fryer: 1, Counter: 1, Mixer: 1 },
+      semaphoreAction: {
+        operation: "wait(Oven)",
+        resource: "Oven",
+        before: 0,
+        after: 0,
+        order: "Cake",
+        result: "blocked",
+        proof: "Cake is moved to the waiting queue because Oven semaphore is zero."
+      }
     },
     {
       concept: "Deadlock Detection",
@@ -185,7 +256,26 @@ function buildTimeline() {
       deadlock: {
         detected: true,
         cycle: ["Order A", "Mixer", "Order B", "Oven", "Order A"],
-        edges: ["Oven -> Order A", "Order A -> Mixer", "Mixer -> Order B", "Order B -> Oven"]
+        nodes: ["Order A", "Order B", "Oven", "Mixer"],
+        edges: [
+          { from: "Oven", to: "Order A", type: "allocation" },
+          { from: "Order A", to: "Mixer", type: "request" },
+          { from: "Mixer", to: "Order B", type: "allocation" },
+          { from: "Order B", to: "Oven", type: "request" }
+        ],
+        detectionSteps: [
+          "Build resource allocation graph",
+          "Follow request edge from Order A to Mixer",
+          "Follow allocation edge from Mixer to Order B",
+          "Follow request edge from Order B to Oven",
+          "Follow allocation edge from Oven back to Order A"
+        ],
+        coffmanConditions: [
+          "Mutual Exclusion: Oven and Mixer are single-instance resources",
+          "Hold and Wait: each order holds one resource while requesting another",
+          "No Preemption: resources are not forcibly taken during cooking",
+          "Circular Wait: Order A -> Mixer -> Order B -> Oven -> Order A"
+        ]
       }
     },
     {
@@ -194,7 +284,16 @@ function buildTimeline() {
       message: "Time 10: Pasta and Pizza completed, signal(Stove), signal(Oven), completed queue updated",
       explanation: "Completed processes release resources and move into the completed queue.",
       states: baseStates({ "O-101": "COMPLETED", "O-102": "COMPLETED", "O-103": "COOKING", "O-104": "READY", "O-105": "READY", "O-106": "READY", "O-107": "READY" }),
-      resources: { Stove: 2, Oven: 1, Fryer: 1, Counter: 2, Mixer: 1 }
+      resources: { Stove: 2, Oven: 1, Fryer: 1, Counter: 2, Mixer: 1 },
+      semaphoreAction: {
+        operation: "signal(Stove), signal(Oven)",
+        resource: "Stove/Oven",
+        before: "Stove 1, Oven 0",
+        after: "Stove 2, Oven 1",
+        order: "Pasta and Pizza",
+        result: "released",
+        proof: "Semaphore counts increase when completed orders release resources."
+      }
     }
   ];
 }

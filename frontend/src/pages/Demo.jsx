@@ -231,7 +231,26 @@ function isActive(sim, concepts) {
 function ProofData({ sim }) {
   if (!sim) return <p>Load the demo to begin the operating-system proof timeline.</p>;
   if (sim.schedulerDecision) {
-    return <div className="proof-stack"><Stat label="Algorithm" value={sim.schedulerDecision.algorithm} /><p><strong>Selected Order:</strong> {sim.schedulerDecision.selectedOrder}</p><p><strong>Reason:</strong> {sim.schedulerDecision.reason}</p><p><strong>Ready Queue:</strong> {sim.schedulerDecision.readyQueue.join(", ")}</p><p><strong>Chef Assigned:</strong> {sim.schedulerDecision.chefAssigned}</p></div>;
+    return (
+      <div className="proof-stack">
+        <div className="stats-grid small">
+          <Stat label="Algorithm" value={sim.schedulerDecision.algorithm} />
+          <Stat label="Current Time" value={sim.schedulerDecision.currentTime} />
+          <Stat label="Response Time" value={sim.schedulerDecision.responseTime} />
+        </div>
+        <p><strong>Selected Order:</strong> {sim.schedulerDecision.selectedOrder}</p>
+        <p><strong>Reason:</strong> {sim.schedulerDecision.reason}</p>
+        <p><strong>Ready Queue:</strong> {sim.schedulerDecision.readyQueue.join(", ")}</p>
+        <p><strong>Chef Assigned:</strong> {sim.schedulerDecision.chefAssigned}</p>
+        <div className="proof-table">
+          {sim.schedulerDecision.comparison?.map((row) => (
+            <div className={row.selected ? "proof-row selected" : "proof-row"} key={row.order}>
+              <strong>{row.order}</strong><span>AT {row.arrivalTime}</span><span>BT {row.cookingTime}</span><Badge tone={row.selected ? "green" : "blue"}>{row.selected ? "Selected" : "Waiting"}</Badge>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
   if (["Ready Queue", "Running State", "Completion"].includes(sim.concept)) {
     return <div className="proof-stack"><p><strong>Current transition:</strong> {sim.currentEvent}</p><p>{sim.explanation}</p></div>;
@@ -241,26 +260,68 @@ function ProofData({ sim }) {
 
 function ProducerConsumerProof({ sim }) {
   if (sim?.buffer) {
-    return <div className="proof-stack"><div className="flow"><Badge>Producer</Badge><span>{"v"}</span><Badge>Order Buffer</Badge><span>{"v"}</span><Badge>Chef Consumer</Badge></div><div className="stats-grid small"><Stat label="Buffer Size" value={sim.buffer.size} /><Stat label="Empty Slots" value={sim.buffer.empty} /><Stat label="Full Slots" value={sim.buffer.full} /></div><p><strong>Buffer:</strong> {sim.buffer.items.join(", ")}</p><p>Operations: wait(empty), wait(mutex), add order, signal(mutex), signal(full).</p></div>;
+    return (
+      <div className="proof-stack">
+        <div className="flow"><Badge>{sim.buffer.producer}</Badge><span>{"v"}</span><Badge>Order Buffer</Badge><span>{"v"}</span><Badge>{sim.buffer.consumer}</Badge></div>
+        <div className="stats-grid small"><Stat label="Buffer Size" value={sim.buffer.size} /><Stat label="Empty" value={sim.buffer.empty} /><Stat label="Full" value={sim.buffer.full} /><Stat label="Mutex" value={sim.buffer.mutex} /></div>
+        <p><strong>Buffer:</strong> {sim.buffer.items.join(", ")}</p>
+        <div className="operation-list">{sim.buffer.operationSequence.map((item) => <span key={item}>{item}</span>)}</div>
+        <p>{sim.buffer.proof}</p>
+      </div>
+    );
   }
   return <p>When the demo reaches Producer-Consumer, a customer produces Burger into the bounded order buffer and the semaphore values update.</p>;
 }
 
 function SemaphoreProof({ sim }) {
   const values = sim?.resources || defaultResources;
-  return <div className="proof-stack"><div className="stats-grid small">{Object.entries(values).map(([name, value]) => <Stat key={name} label={`${name}`} value={value} />)}</div><p>{sim?.currentEvent || "Semaphore values are ready before the simulation starts."}</p><p>Resources use wait(resource) when allocated and signal(resource) when released.</p></div>;
+  return (
+    <div className="proof-stack">
+      <div className="stats-grid small">{Object.entries(values).map(([name, value]) => <Stat key={name} label={`${name}`} value={value} />)}</div>
+      {sim?.semaphoreAction ? (
+        <div className={`semaphore-action ${sim.semaphoreAction.result}`}>
+          <Badge tone={sim.semaphoreAction.result === "blocked" ? "red" : "green"}>{sim.semaphoreAction.operation}</Badge>
+          <p><strong>Order:</strong> {sim.semaphoreAction.order}</p>
+          <p><strong>Value:</strong> {sim.semaphoreAction.before} {"->"} {sim.semaphoreAction.after}</p>
+          <p>{sim.semaphoreAction.proof}</p>
+        </div>
+      ) : <p>Semaphore values are ready before the simulation starts.</p>}
+      <p>Resources use wait(resource) when allocated and signal(resource) when released.</p>
+    </div>
+  );
 }
 
 function MutexProof({ sim }) {
   if (sim?.mutex) {
-    return <div className="proof-stack"><Badge tone={sim.mutex.locked ? "green" : "violet"}>Mutex {sim.mutex.locked ? "Locked" : "Released"}</Badge><p><strong>Owner:</strong> {sim.mutex.owner || "None"}</p><p><strong>Critical Section:</strong> {sim.mutex.criticalSection}</p><p>{sim.mutex.ingredient}: {sim.mutex.before} {"->"} {sim.mutex.after}</p></div>;
+    return (
+      <div className="proof-stack">
+        <Badge tone={sim.mutex.locked ? "green" : "violet"}>Mutex {sim.mutex.locked ? "Locked" : "Released"}</Badge>
+        <p><strong>Owner:</strong> {sim.mutex.owner || "None"}</p>
+        <p><strong>Waiting Orders:</strong> {sim.mutex.waitingOrders?.join(", ") || "None"}</p>
+        {sim.mutex.nextOwner && <p><strong>Next Owner:</strong> {sim.mutex.nextOwner}</p>}
+        <p><strong>Critical Section:</strong> {sim.mutex.criticalSection}</p>
+        <p>{sim.mutex.ingredient}: {sim.mutex.before} {"->"} {sim.mutex.after}</p>
+        <div className="operation-list">{sim.mutex.lockSequence?.map((item) => <span key={item}>{item}</span>)}</div>
+        <p>{sim.mutex.proof}</p>
+      </div>
+    );
   }
   return <p>Mutex proof appears when Pasta updates inventory. The lock must be acquired before the critical section and released after the update.</p>;
 }
 
 function DeadlockProof({ sim }) {
   if (sim?.deadlock) {
-    return <div className="proof-stack"><Badge tone="red">Deadlock Detected</Badge><p><strong>Cycle:</strong> {sim.deadlock.cycle.join(" -> ")}</p>{sim.deadlock.edges.map((edge) => <p key={edge}>{edge}</p>)}</div>;
+    return (
+      <div className="proof-stack">
+        <Badge tone="red">Deadlock Detected</Badge>
+        <p><strong>Cycle:</strong> {sim.deadlock.cycle.join(" -> ")}</p>
+        <div className="rag-mini">
+          {sim.deadlock.edges.map((edge) => <div className="rag-edge" key={`${edge.from}-${edge.to}`}><strong>{edge.from}</strong><span>{edge.type === "allocation" ? "allocated to" : "requests"}</span><strong>{edge.to}</strong></div>)}
+        </div>
+        <div className="operation-list">{sim.deadlock.detectionSteps.map((item) => <span key={item}>{item}</span>)}</div>
+        <div className="coffman-list">{sim.deadlock.coffmanConditions.map((item) => <p key={item}>{item}</p>)}</div>
+      </div>
+    );
   }
   return <p>Deadlock proof appears when the resource allocation graph has a circular wait: Order A waits for Mixer and Order B waits for Oven.</p>;
 }
