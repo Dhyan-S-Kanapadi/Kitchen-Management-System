@@ -3,7 +3,6 @@ import { Activity, BarChart3, BookOpen, ChefHat, Cpu, FileText, Home, Lock, Pack
 const nav = [
   ["Dashboard", Home],
   ["Orders", ChefHat],
-  ["Scheduler", Cpu],
   ["Resources", Package],
   ["Synchronization", Lock],
   ["Deadlock", Route],

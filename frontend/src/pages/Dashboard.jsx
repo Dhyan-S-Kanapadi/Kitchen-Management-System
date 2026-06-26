@@ -25,7 +25,7 @@ export default function Dashboard({ setPage }) {
         </Panel>
       </div>
       <Panel title="Visual Proof Sections">
-        <div className="concept-grid">{conceptCards.map(([title, text]) => <button className="concept-card" onClick={() => setPage(title.includes("Deadlock") ? "Deadlock" : title.includes("Scheduling") ? "Scheduler" : title.includes("Producer") || title.includes("Mutex") ? "Synchronization" : "Resources")} key={title}><Badge>{title}</Badge><p>{text}</p></button>)}</div>
+        <div className="concept-grid">{conceptCards.map(([title, text]) => <button className="concept-card" onClick={() => setPage(title.includes("Deadlock") ? "Deadlock" : title.includes("Scheduling") ? "Demo" : title.includes("Producer") || title.includes("Mutex") ? "Synchronization" : "Resources")} key={title}><Badge>{title}</Badge><p>{text}</p></button>)}</div>
       </Panel>
       <div className="grid two">
         <Panel title="Recent Kernel Event Log"><EventLog events={sim?.eventLog || []} /></Panel>

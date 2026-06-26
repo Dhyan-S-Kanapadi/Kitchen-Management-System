@@ -10,7 +10,7 @@ A chef is treated as the CPU because the chef executes the cooking work.
 
 ## How do you show CPU scheduling?
 
-The Scheduler page runs FCFS, SJF, Priority Scheduling, and Round Robin, then shows execution order, Gantt chart, metrics, and selection reasons.
+The Demo page shows CPU scheduling with execution order, Gantt chart, metrics, and selection reasons.
 
 ## How do you prove semaphore?
 

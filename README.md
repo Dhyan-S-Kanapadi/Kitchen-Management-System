@@ -40,7 +40,7 @@ This makes the OS concepts easier to explain because each algorithm has a visibl
 | Running State | Cooking state |
 | Waiting Queue | Waiting for stove, oven, fryer, counter, or mixer |
 | Completed State | Completed order |
-| Scheduler | Kitchen order manager |
+| Scheduling Logic | Kitchen order manager |
 | Time Quantum | Cooking time slot |
 | Semaphore | Available kitchen equipment count |
 | Mutex | Inventory update lock |
@@ -54,7 +54,7 @@ This makes the OS concepts easier to explain because each algorithm has a visibl
 
 ### 1. CPU Scheduling
 
-The scheduler page demonstrates how a kitchen manager decides which food order should be cooked next.
+The Demo page demonstrates how a kitchen manager decides which food order should be cooked next.
 
 Implemented algorithms:
 
@@ -70,7 +70,7 @@ The frontend displays:
 - Waiting queue
 - Completed queue
 - Gantt chart
-- Scheduler decision explanation
+- Scheduling decision explanation
 - Waiting time
 - Turnaround time
 - Response time
@@ -363,10 +363,9 @@ POST /api/simulation/reset
    - Semaphore
    - Mutex / Critical Section
    - Deadlock Detection
-6. Open Scheduler to compare FCFS, SJF, Priority, and Round Robin.
-7. Open Synchronization to show producer-consumer and mutex logs.
-8. Open Deadlock to show the resource allocation graph.
-9. Open Report to print/export the project report.
+6. Open Synchronization to show producer-consumer and mutex logs.
+7. Open Deadlock to show the resource allocation graph.
+8. Open Report to print/export the project report.
 
 ## Conclusion
 
