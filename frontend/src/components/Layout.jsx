@@ -1,8 +1,7 @@
-import { Activity, BarChart3, BookOpen, ChefHat, Cpu, FileText, Home, Lock, Package, Route } from "lucide-react";
+import { Activity, BarChart3, BookOpen, Cpu, FileText, Home, Lock, Package, Route } from "lucide-react";
 
 const nav = [
   ["Dashboard", Home],
-  ["Orders", ChefHat],
   ["Resources", Package],
   ["Synchronization", Lock],
   ["Deadlock", Route],
